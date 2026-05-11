@@ -33,12 +33,25 @@ const chatLimiter = rateLimit({
 });
 
 // ─── Core Middleware ───────────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://ai-book-library.netlify.app/"
+];
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: function (origin, callback) {
+    console.log("Request Origin:", origin);
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log("❌ Blocked by CORS:", origin);
+      callback(null, false);
+    }
+  },
+  credentials: true
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
