@@ -35,19 +35,22 @@ const chatLimiter = rateLimit({
 // ─── Core Middleware ───────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://ai-book-library.netlify.app/"
+  "https://ai-book-library.netlify.app"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     console.log("Request Origin:", origin);
 
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log("❌ Blocked by CORS:", origin);
-      callback(null, false);
+    // allow Postman / server-to-server
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    console.log("❌ Blocked by CORS:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
 }));
