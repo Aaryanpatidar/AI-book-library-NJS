@@ -39,7 +39,11 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:bg-amber-400 transition-colors">
-              <BookOpen className="w-4.5 h-4.5 text-ink-950" size={18} />
+              <img
+                src="/Book.png"
+                alt="Book Logo"
+                className="w-[18px] h-[18px]"
+              />
             </div>
             <span className="font-serif font-bold text-lg text-parchment-100 hidden sm:block">
               AI<span className="text-amber-400"> Book</span> Library
