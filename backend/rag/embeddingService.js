@@ -67,8 +67,9 @@ async function embedAndStore(chunks, bookId) {
     if (!records.length) {
       continue;
     }
-
+    console.time("upsert");
     await index.upsert(records);
+    console.time("upsert");
     totalUpserted += records.length;
 
   }
@@ -82,7 +83,9 @@ async function deleteBookVectors(bookId) {
 }
 
 async function embedQuery(query) {
+  console.time("embedding");
   const vector = await embedText(query);
+  console.time("embedding");
 
   if (!Array.isArray(vector) || vector.length !== 384) {
     throw new Error("Invalid query embedding");
