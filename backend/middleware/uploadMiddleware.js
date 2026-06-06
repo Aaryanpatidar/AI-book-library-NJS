@@ -11,16 +11,12 @@ const storage = new CloudinaryStorage({
     return {
       folder: 'books',
       resource_type: 'raw',
-
-      // 🔥 IMPORTANT FIX
-      access_mode: 'public',   // ✅ ADD THIS
-
+      access_mode: 'public',   
       public_id: `${Date.now()}-${file.originalname.replace(ext, '')}`,
     };
   },
 });
 
-// ─── FILE FILTER (KEEP YOUR LOGIC) ──────────────────────
 const fileFilter = (_req, file, cb) => {
   const allowedTypes = ['application/pdf'];
   const allowedExtensions = ['.pdf'];
@@ -42,10 +38,8 @@ const fileFilter = (_req, file, cb) => {
   }
 };
 
-// ─── SIZE LIMIT ─────────────────────────────────────────
 const MAX_SIZE_MB = parseInt(process.env.MAX_FILE_SIZE_MB) || 10; 
 
-// ─── MULTER INSTANCE ────────────────────────────────────
 const upload = multer({
   storage,
   fileFilter,
@@ -55,9 +49,14 @@ const upload = multer({
   },
 });
 
-// ─── ERROR HANDLER (KEEP SAME) ──────────────────────────
 const handleUpload = (fieldName) => (req, res, next) => {
   upload.single(fieldName)(req, res, (err) => {
+
+    if (err) {
+      console.error("UPLOAD ERROR:", err);
+      console.error("UPLOAD ERROR JSON:", JSON.stringify(err, null, 2));
+    }
+
     if (!err) return next();
 
     if (err instanceof multer.MulterError) {

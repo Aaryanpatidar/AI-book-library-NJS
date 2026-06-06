@@ -32,7 +32,6 @@ export default function BookReader() {
   const [scale, setScale] = useState(1.2);
   const [pdfLoading, setPdfLoading] = useState(true);
 
-  // Fetch book 
   useEffect(() => {
     booksAPI
       .getById(id)
@@ -41,19 +40,17 @@ export default function BookReader() {
       .finally(() => setBookLoading(false));
   }, [id]);
 
-  //  Memoized PDF URL
   const pdfUrl = useMemo(() => {
   return book?.fileUrl || null;
   }, [book?.fileUrl]);
 
-  //  PDF Handlers 
   const onDocumentLoadSuccess = useCallback(({ numPages }) => {
     setNumPages(numPages);
     setPdfLoading(false);
   }, []);
 
   const onDocumentLoadError = useCallback((err) => {
-    console.error('❌ FULL PDF ERROR:', err);
+    console.error('FULL PDF ERROR:', err);
     alert('Failed to load PDF. Check console.');
     setPdfLoading(false);
   }, []);

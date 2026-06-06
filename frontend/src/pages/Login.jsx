@@ -1,8 +1,3 @@
-/**
- * pages/Login.jsx
- * Beautiful login form with validation and animated feedback.
- */
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';

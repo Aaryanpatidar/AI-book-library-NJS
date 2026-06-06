@@ -10,7 +10,7 @@ const BASE_URL = `${import.meta.env.VITE_API_URL}api` || '/api';
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true,   // Send HTTP-only cookie
-  timeout: 60_000,         // 60 s (LLM calls can be slow)
+  timeout: 360_000,         // 60 s (LLM calls can be slow)
   headers: { 'Content-Type': 'application/json' },
 });
 

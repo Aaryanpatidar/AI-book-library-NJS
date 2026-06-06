@@ -1,12 +1,7 @@
-/**
- * App.jsx — Root component: routing, auth context, layout wiring
- */
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Pages
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -14,11 +9,9 @@ import Upload from './pages/Upload';
 import BookReader from './pages/BookReader';
 import Chat from './pages/Chat';
 
-// Components
 import Navbar from './components/Navbar';
 import LoadingSpinner from './components/LoadingSpinner';
 
-// ─── Protected Route wrapper ───────────────────────────────────────────────
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -33,7 +26,6 @@ function ProtectedRoute({ children }) {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }
 
-// ─── Public Route (redirect if already logged in) ─────────────────────────
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -48,7 +40,6 @@ function PublicRoute({ children }) {
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
 }
 
-// ─── Layout wrapper for authenticated pages ───────────────────────────────
 function AuthenticatedLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-ink-950 bg-noise">
@@ -58,7 +49,6 @@ function AuthenticatedLayout({ children }) {
   );
 }
 
-// ─── App ──────────────────────────────────────────────────────────────────
 function AppRoutes() {
   return (
     <Routes>

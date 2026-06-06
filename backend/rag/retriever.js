@@ -1,8 +1,10 @@
 const Groq = require("groq-sdk");
 const { embedQuery, getPineconeIndex } = require("./embeddingService");
 
-const TOP_K = 8;            
-const MIN_SCORE = 0.2;      
+const RETRIEVE_TOP_K = 15;
+const FINAL_TOP_K = 8;
+const MIN_SCORE = 0.3;
+const MAX_CHUNK_LENGTH = 1000;
 
 let groq = null;
 
@@ -15,106 +17,180 @@ function getGroq() {
   return groq;
 }
 
+/**
+ * Retrieve relevant chunks from Pinecone
+ */
 async function retrieveRelevantChunks(query, bookId) {
   const queryVector = await embedQuery(query);
+
   const index = getPineconeIndex().namespace(bookId);
 
   const results = await index.query({
     vector: queryVector,
-    topK: TOP_K,
+    topK: RETRIEVE_TOP_K,
     includeMetadata: true,
   });
 
-  if (!results.matches?.length) return [];
+  if (!results.matches?.length) {
+    return [];
+  }
 
-  const sorted = results.matches.sort((a, b) => b.score - a.score);
+  const chunks = results.matches
+    .filter(
+      (match) =>
+        match.score &&
+        match.score >= MIN_SCORE &&
+        match.metadata?.text
+    )
+    .sort((a, b) => b.score - a.score)
+    .slice(0, FINAL_TOP_K)
+    .map((match) => ({
+      text: match.metadata.text
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, MAX_CHUNK_LENGTH),
 
-  const filtered = sorted
-    .filter(m => m.score >= MIN_SCORE)
-    .slice(0, TOP_K);
+      score: match.score,
+      page: match.metadata.page || "Unknown",
+    }));
 
-  return filtered.map((m) => ({
-    text: m.metadata?.text || "",
-    score: m.score,
-    page: m.metadata?.page || 1,
-  }));
+  return chunks;
 }
 
+/**
+ * Build clean context for LLM
+ */
+function buildContext(chunks) {
+  return chunks
+    .map(
+      (chunk, index) => `
+=== SOURCE ${index + 1} ===
+Page: ${chunk.page}
+Relevance Score: ${chunk.score.toFixed(3)}
+
+${chunk.text}
+`
+    )
+    .join("\n");
+}
+
+/**
+ * Generate answer
+ */
 async function generateAnswer(question, chunks) {
   if (!chunks.length) {
     return {
-      answer: "No relevant information found in the document.",
+      answer: "This information is not available in the document.",
       sourcesUsed: [],
     };
   }
 
-  const context = chunks
-    .map((c, i) => 
-      `Source ${i + 1} (Page ${c.page}, Score ${c.score.toFixed(2)}):\n${c.text}`
-    )
-    .join("\n\n");
-
-
-  const groq = getGroq();
-
-  let response;
+  const context = buildContext(chunks);
 
   try {
-    response = await groq.chat.completions.create({
+    const groq = getGroq();
+
+    const completion = await groq.chat.completions.create({
       model: "llama-3.1-8b-instant",
+
+      temperature: 0.1,
+
       messages: [
         {
           role: "system",
           content: `
-You are a helpful document assistant.
+You are an expert PDF Question Answering Assistant.
 
-RULES:
-- Answer using ONLY the provided context
-- You MAY summarize or combine information from multiple sources
-- If the answer is partially available, provide the best possible answer
-- Only say "Answer not found in the document" if the context is completely irrelevant
-- Keep the answer clear, structured, and concise
-- Do NOT hallucinate or add outside knowledge
+Your job is to answer questions ONLY from the provided document context.
 
-Context:
-${context}
-          `,
+STRICT RULES:
+
+1. Use ONLY the supplied context.
+2. Never use outside knowledge.
+3. Never hallucinate.
+4. Read ALL sources before answering.
+5. Combine information from multiple sources when necessary.
+6. Mention page numbers used.
+7. If information is partially available, provide what is available.
+8. If the answer cannot be found in the context, reply exactly:
+
+"This information is not available in the document."
+
+Response Format:
+
+Answer:
+<answer>
+
+Pages:
+<page numbers>
+`,
         },
         {
           role: "user",
-          content: question,
+          content: `
+DOCUMENT CONTEXT
+
+${context}
+
+QUESTION
+
+${question}
+`,
         },
       ],
-      temperature: 0,
     });
-  } catch (err) {
-    console.error("❌ Groq error:", err.message);
+
+    const answer =
+      completion?.choices?.[0]?.message?.content ||
+      "Unable to generate answer.";
+
+    return {
+      answer,
+
+      sourcesUsed: chunks.map((chunk) => ({
+        pageNumber: chunk.page,
+        score: chunk.score.toFixed(3),
+        excerpt: chunk.text.slice(0, 150),
+      })),
+    };
+  } catch (error) {
+    console.error("Groq Error:", error);
+
     return {
       answer: "Error generating answer.",
       sourcesUsed: [],
     };
   }
-
-  return {
-    answer: response.choices[0].message.content,
-    sourcesUsed: chunks.map((c) => ({
-      pageNumber: c.page,
-      excerpt: c.text.slice(0, 120),
-      score: c.score.toFixed(3),
-    })),
-  };
 }
 
+/**
+ * Main entry point
+ */
 async function askQuestion(question, bookId) {
-  
-  const chunks = await retrieveRelevantChunks(question, bookId);
+  try {
+    const chunks = await retrieveRelevantChunks(
+      question,
+      bookId
+    );
 
-  const result = await generateAnswer(question, chunks);
+    const result = await generateAnswer(
+      question,
+      chunks
+    );
 
-  return {
-    ...result,
-    chunksRetrieved: chunks.length,
-  };
+    return {
+      ...result,
+      chunksRetrieved: chunks.length,
+    };
+  } catch (error) {
+    console.error("Ask Question Error:", error);
+
+    return {
+      answer: "Failed to process question.",
+      sourcesUsed: [],
+      chunksRetrieved: 0,
+    };
+  }
 }
 
 module.exports = {

@@ -84,7 +84,7 @@ export default function Dashboard() {
         <div className="flex-1">
           <p className="label mb-1">Your Library</p>
           <h1 className="font-serif text-3xl font-bold text-parchment-50">
-            Welcome back, {user?.name?.split(' ')[0]} 👋
+            Welcome back, {user?.name?.split(' ')[0]} 
           </h1>
           <p className="mt-1 text-parchment-200/50 text-sm">
             {books.length} {books.length === 1 ? 'book' : 'books'} in your collection

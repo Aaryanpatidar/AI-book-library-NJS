@@ -1,7 +1,3 @@
-/**
- * routes/chat.js — Chat / RAG Q&A routes (all protected)
- */
-
 const express = require('express');
 const { body, param } = require('express-validator');
 const {
@@ -13,10 +9,8 @@ const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// All routes require auth
 router.use(protect);
 
-// ─── Validation ───────────────────────────────────────────────────────────
 const askValidation = [
   body('bookId')
     .notEmpty().withMessage('bookId is required')
@@ -31,7 +25,6 @@ const bookIdParam = [
   param('bookId').isMongoId().withMessage('Invalid bookId format'),
 ];
 
-// ─── Routes ───────────────────────────────────────────────────────────────
 router.post('/ask', askValidation, askBookQuestion);
 router.get('/:bookId', bookIdParam, getChatHistory);
 router.delete('/:bookId', bookIdParam, clearChatHistory);

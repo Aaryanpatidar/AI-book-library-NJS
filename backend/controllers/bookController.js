@@ -1,6 +1,6 @@
-const { validationResult } = require('express-validator');
 const Book = require('../models/Book');
 const ChatHistory = require('../models/ChatHistory');
+const { validationResult } = require('express-validator');
 const { processPDF } = require('../rag/pdfProcessor');
 const { embedAndStore, deleteBookVectors } = require('../rag/embeddingService');
 
@@ -10,7 +10,6 @@ const COVER_COLORS = [
 ];
 let colorIndex = 0;
 
-// ─── UPLOAD BOOK ─────────────────────────────────────────
 const uploadBook = async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No PDF file provided.' });
@@ -27,7 +26,6 @@ const uploadBook = async (req, res) => {
 
   const { title, author, description } = req.body;
 
-  // ✅ Cloudinary URL instead of local path
   const fileUrl = req.file.path;
 
   let book;
@@ -37,7 +35,7 @@ const uploadBook = async (req, res) => {
       author: author?.trim() || 'Unknown Author',
       description: description?.trim() || '',
       originalName: req.file.originalname,
-      fileUrl, // ✅ store URL
+      fileUrl, 
       fileSize: req.file.size,
       uploadedBy: req.user._id,
       processingStatus: 'processing',
@@ -61,7 +59,6 @@ const uploadBook = async (req, res) => {
       },
     });
 
-    // ✅ pass URL instead of filePath
     processBookInBackground(book, fileUrl);
 
   } catch (err) {
@@ -73,10 +70,8 @@ const uploadBook = async (req, res) => {
   }
 };
 
-// ─── BACKGROUND PROCESSING ───────────────────────────────
 async function processBookInBackground(book, fileUrl) {
   try {
-    // ✅ IMPORTANT: processPDF must handle URL (download internally)
     const { chunks, pageCount } = await processPDF(fileUrl, book._id.toString());
 
     const vectorCount = await embedAndStore(chunks, book._id.toString());
@@ -96,7 +91,6 @@ async function processBookInBackground(book, fileUrl) {
   }
 }
 
-// ─── GET BOOKS ───────────────────────────────────────────
 const getBooks = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -113,7 +107,6 @@ const getBooks = async (req, res) => {
       Book.countDocuments({ uploadedBy: req.user._id }),
     ]);
 
-    // ✅ No local URL building
     res.json({
       success: true,
       books,
@@ -125,7 +118,6 @@ const getBooks = async (req, res) => {
   }
 };
 
-// ─── GET BOOK BY ID ──────────────────────────────────────
 const getBookById = async (req, res) => {
   try {
     const book = await Book.findOne({
@@ -144,7 +136,6 @@ const getBookById = async (req, res) => {
   }
 };
 
-// ─── DELETE BOOK ─────────────────────────────────────────
 const deleteBook = async (req, res) => {
   try {
     const book = await Book.findOne({
@@ -155,9 +146,6 @@ const deleteBook = async (req, res) => {
     if (!book) {
       return res.status(404).json({ success: false, message: 'Book not found.' });
     }
-
-    // ❌ No local file delete
-    // (Optional: delete from Cloudinary if needed)
 
     if (book.vectorNamespace) {
       await deleteBookVectors(book.vectorNamespace).catch((e) =>

@@ -6,9 +6,8 @@ const pdfParse = require("pdf-parse");
 const CHUNK_SIZE = 500;
 const CHUNK_OVERLAP = 120;
 
-// ─── DOWNLOAD PDF IF URL ────────────────────────────────
 async function getFileBuffer(filePath) {
-  // If Cloudinary URL
+  
   if (filePath.startsWith("http")) {
     const response = await axios({
       url: filePath,
@@ -19,11 +18,9 @@ async function getFileBuffer(filePath) {
     return Buffer.from(response.data);
   }
 
-  // Local file
   return fs.readFileSync(filePath);
 }
 
-// ─── EXTRACT TEXT ───────────────────────────────────────
 async function extractTextFromPDF(filePath) {
   const buffer = await getFileBuffer(filePath);
 
@@ -35,7 +32,6 @@ async function extractTextFromPDF(filePath) {
   return { text, pageCount };
 }
 
-// ─── CLEAN TEXT ─────────────────────────────────────────
 function cleanText(rawText) {
   return rawText
     .replace(/\r\n/g, "\n")
@@ -48,7 +44,6 @@ function cleanText(rawText) {
     .trim();
 }
 
-// ─── SPLIT INTO CHUNKS ──────────────────────────────────
 function splitIntoChunks(text, bookId, pageCount) {
   const words = text.split(" ").filter(Boolean);
   const chunks = [];
@@ -89,13 +84,12 @@ function splitIntoChunks(text, bookId, pageCount) {
   return chunks;
 }
 
-// ─── MAIN PROCESS ───────────────────────────────────────
 async function processPDF(filePath, bookId) {
   const { text, pageCount } = await extractTextFromPDF(filePath);
 
   if (!text || text.length < 30) {
     throw new Error(
-      "❌ Could not extract readable text. PDF may be scanned/image-based."
+      "Could not extract readable text. PDF may be scanned/image-based."
     );
   }
 

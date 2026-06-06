@@ -24,8 +24,8 @@ function TypingIndicator() {
 }
 
 const STARTERS = [
-  'What is the main theme of this book?',
-  'Summarize the key ideas in this book.',
+  'What is the main theme of this pdf/book?',
+  'Summarize the key ideas in this pdf/book.',
   'Who are the main characters or figures?',
   'What is the conclusion or final argument?',
 ];
