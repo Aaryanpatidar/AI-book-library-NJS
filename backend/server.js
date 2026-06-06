@@ -32,6 +32,7 @@ const chatLimiter = rateLimit({
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://ai-book-library.netlify.app"
 ];
 

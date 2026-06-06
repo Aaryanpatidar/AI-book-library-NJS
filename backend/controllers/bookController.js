@@ -72,18 +72,25 @@ const uploadBook = async (req, res) => {
 
 async function processBookInBackground(book, fileUrl) {
   try {
-    const { chunks, pageCount } = await processPDF(fileUrl, book._id.toString());
+    console.log(`[Background Worker] Starting processing for Book: ${book._id}`);
 
-    const vectorCount = await embedAndStore(chunks, book._id.toString());
+    // 1. Call the upgraded processor (It handles extraction, chunking, and Pinecone syncing all at once!)
+    const { pageCount, totalVectorsStored } = await processPDF(fileUrl, book._id.toString());
 
+    // 2. Update MongoDB to tell the React frontend it was a total success
     await Book.findByIdAndUpdate(book._id, {
       processingStatus: 'completed',
-      pageCount,
-      chunkCount: vectorCount,
+      pageCount: pageCount,
+      chunkCount: totalVectorsStored,
       vectorNamespace: book._id.toString(),
     });
 
+    console.log(`[Database] Book ${book._id} successfully marked as COMPLETED.`);
+
   } catch (err) {
+    console.error('[Background Processing Error]:', err.message);
+    
+    // If it actually fails, update MongoDB so the frontend knows
     await Book.findByIdAndUpdate(book._id, {
       processingStatus: 'failed',
       processingError: err.message,
